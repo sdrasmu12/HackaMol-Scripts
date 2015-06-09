@@ -27,6 +27,7 @@ my ($dihe) =
 say $dihe->dihe_deg; 
 
 $dihe->is_constrained(1);
+$mol->push_dihedrals($dihe);
 
 my $init = {
     $dihe->get_atoms(1)->iatom => 1,
@@ -49,12 +50,22 @@ my $group_rotate =
 my $orca = HackaMol::X::Orca->new(
       mol             => $mol,
       has_constraints => 1,
+     # theory          => 'AM1',
       theory          => 'HF-3c',
       exe             => '/Users/chem_student/perl5/apps/orca_3_0_3_macosx_openmpi165/orca',
       scratch         => "tmp",
 );
 
 
+#my $dang = 10;
+#my $ceil = int( 180 / $dang );
+#foreach my $ang ( map { $dang * $_ } 0 .. $ceil ) {
+#    $mol->dihedral_rotate_groups( $dihe, $dihe->dihe_deg - $ang,
+#        $group_rotate );
+#    $mol->print_xyz;
+#}
+
+#exit;
 
 my $dang = 10;
 my $ceil = int( 180 / $dang );
@@ -63,17 +74,28 @@ open(my $in, ">", "plotly.txt") or die "couldn't open";
 
 foreach my $ang ( map { $dang * $_ } 0 .. $ceil ) {
 
-    $mol->dihedral_rotate_groups( $dihe, $dihe->dihe_deg - $ang,
+    say "shit $ang ". $dihe->dihe_deg;
+    
+    #$mol->dihedral_rotate_groups( $dihe, $ang,
+    #    $group_rotate );
+    #my $shit = $ang;
+    my $shit = $dihe->dihe_deg - $ang;
+    say $shit;
+    
+    $mol->dihedral_rotate_groups( $dihe, $shit ,
         $group_rotate );
 
-    my @energies = $orca->opt;
-
+#    my @energies = $orca->opt;
+    my @energies = (0);
+    $mol->print_xyz('tmp/mol.xyz');
     $bldr->read_file_push_coords_mol("tmp/mol.xyz",$mol); 
 
     $t++;
     $mol->gt($t); 
-    printf $in ("%10.3f %14.6f\n", $dihe->dihe_deg, $energies[-1]*627.51);
-    $mol->print_xyz;
+   # printf $in ("%10.3f %14.6f\n", $dihe->dihe_deg, $energies[-1]*627.51);
+   # say "$t ". $dihe->dihe_deg ; 
+   $mol->print_xyz;
+    
 
 }
 
