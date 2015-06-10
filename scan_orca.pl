@@ -72,34 +72,25 @@ my $ceil = int( 180 / $dang );
 my $t = 0;
 open(my $in, ">", "plotly.txt") or die "couldn't open";
 
-foreach my $ang ( map { $dang * $_ } 0 .. $ceil ) {
+foreach ( 1 .. $ceil ) {
 
-    say "shit $ang ". $dihe->dihe_deg;
-    
-    #$mol->dihedral_rotate_groups( $dihe, $ang,
-    #    $group_rotate );
-    #my $shit = $ang;
-    my $shit = $dihe->dihe_deg - $ang;
-    say $shit;
-    
-    $mol->dihedral_rotate_groups( $dihe, $shit ,
+    $mol->dihedral_rotate_groups( $dihe, $dang ,
         $group_rotate );
 
-#    my @energies = $orca->opt;
-    my @energies = (0);
+    my @energies = $orca->opt;
+#    my @energies = (0);
     $mol->print_xyz('tmp/mol.xyz');
     $bldr->read_file_push_coords_mol("tmp/mol.xyz",$mol); 
-
     $t++;
-    $mol->gt($t); 
-   # printf $in ("%10.3f %14.6f\n", $dihe->dihe_deg, $energies[-1]*627.51);
-   # say "$t ". $dihe->dihe_deg ; 
+    $mol->t($t); 
+   printf $in ("%10.3f %14.6f\n", $dihe->dihe_deg, $energies[-1]*627.51);
+   #printf ("%10.3f %14.6f\n", $dihe->dihe_deg, $energies[-1]*627.51);
    $mol->print_xyz;
     
 
 }
 
-
+#$mol->print_xyz_ts([0 .. $mol->tmax], 'shit.xyz');
 
 sub qrotatable {
     my $atoms   = shift;
