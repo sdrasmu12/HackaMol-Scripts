@@ -13,7 +13,6 @@ my $mol = HackaMol->new->read_file_mol(shift);
 $mol->push_charges(0);
 $mol->multiplicity(1);
 
-$mol->get_atoms(5)->change_symbol("Cl");
 my $dihe = HackaMol::Dihedral->new(
                                 is_constrained => 1,
                                     atoms=> [
@@ -52,7 +51,6 @@ $mol->gt(0);
 my $fh = $mol->print_xyz('shit.xyz');
 open(my $in, ">", "plotly.txt") or die "couldn't open";
 my $min = 9999;
-
 #unrestrained ones
 foreach (0,1){
   $mol->gt($_);

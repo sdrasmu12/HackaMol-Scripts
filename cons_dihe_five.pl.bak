@@ -1,6 +1,5 @@
 use HackaMol;
 use HackaMol::X::Orca;
-use  HackaMol::X::NERF;
 use Modern::Perl;
 use YAML::XS qw(LoadFile DumpFile);
 use POSIX;
@@ -97,7 +96,7 @@ my $orca2 = HackaMol::X::Orca->new(
 );
 
 # get ready for the foreach loop
-$mol->t(0);
+$mol->gt(0);
 open(my $in, ">", "xtals_energies.txt") or die "couldn't open";
 #my %fresults;
 #my $partit = 5;
@@ -117,7 +116,8 @@ open(my $in, ">", "xtals_energies.txt") or die "couldn't open";
 foreach my $dist (sort { $a <=> $b } keys %histo){
   foreach my $chi3 (sort{ $a <=> $b } keys %{$histo{$dist}}){
       my $t = $histo{$dist}{$chi3};
-      my $qm_mol = cystine_protonate($mol, $t);
+      $mol->t($t);
+      my $mol_calc = protonation($mol, $t);
     #foreach my $t (@{$histo{$dist}{$chi3}}){
       #my @energies = (0);
       my @energies = $orca2->opt;
@@ -129,55 +129,107 @@ foreach my $dist (sort { $a <=> $b } keys %histo){
   } 
 }
 
-sub cystine_protonate {
+
+sub protonation {
   my $mol = shift;
-  my $t   = shift;
+  say $mol->t; exit;
+$mol->print_xyz;1
 
-  $mol->t($t);
+#build in two oxygen
+my @atoms = map{$_->xyz} $mol->all_atoms;
+my $nerf = HackaMol::X::NERF->new;
 
-  my $nerf = HackaMol::X::NERF->new;
-  #build in two oxygen
-  my @xyzs = map{$_->xyz} $mol->all_atoms;
-  use Data::Dumper;
-  say 'shit'; 
-  say $_ foreach @xyzs;
+my @atoms = map{$_->xyz} $mol->all_atoms;
+my $nerf = HackaMol::X::NERF->new;
 
-  my $o1  = $nerf->extend_abc( $xyzs[3],  $xyzs[1], $xyzs[2],  1.3,  120, 180 );
-  my $o2  = $nerf->extend_abc( $xyzs[9],  $xyzs[7], $xyzs[8],  1.3,  120, 180 );
-  my $hmol = HackaMol::Molecule->new(atoms=>[$mol->all_atoms,
-        map{ HackaMol::Atom->new(Z => 8, coords => [$_]) } ($o1,$o2)
-      ]
-  );
-  
-  @xyzs = map{$_->xyz} $hmol->all_atoms;
-  my $h1  = $nerf->extend_abc( $xyzs[2],  $xyzs[1], $xyzs[0],  1.0,  120, 1 );
-  my $h2  = $nerf->extend_abc( $xyzs[2],  $xyzs[1], $xyzs[0],  1.0,  120, 180 );
-  my $h3  = $nerf->extend_abc( $xyzs[7],  $xyzs[5], $xyzs[6],  1.0,  120, 1 );
-  my $h4  = $nerf->extend_abc( $xyzs[7],  $xyzs[5], $xyzs[6],  1.0,  120, 180 );
-  my $h5  = $nerf->extend_abc( $xyzs[2],  $xyzs[0], $xyzs[1],  1.0,  109, 120);
-  my $h6  = $nerf->extend_abc( $xyzs[8],  $xyzs[6], $xyzs[7],  1.0,  109, 90);
-  my $h7  = $nerf->extend_abc( $xyzs[11],  $xyzs[5], $xyzs[4],  1.0,  109, -90);
-  my $h8  = $nerf->extend_abc( $xyzs[11],  $xyzs[5], $xyzs[4],  1.0,  109, 90);
-  my $h9  = $nerf->extend_abc( $xyzs[11], $xyzs[9], $xyzs[10], 1.0,  109, 270 );
-  my $h10 = $nerf->extend_abc( $xyzs[11], $xyzs[9], $xyzs[10], 1.0,  109, 90);
-  my $h11 = $nerf->extend_abc( $xyzs[3],  $xyzs[2], $xyzs[12], 1.0,  109, 180);
-  my $h12 = $nerf->extend_abc( $xyzs[9],  $xyzs[8], $xyzs[13], 1.0,  109, 54);
+my $o1 = $nerf->extend_abc( $atoms[3], $atoms[1], $atoms[2], 1.3, 120, 180 );
+my $o2 = $nerf->extend_abc( $atoms[9], $atoms[7], $atoms[8], 1.3, 120, 180 );
 
-  $hmol->push_atoms(
+$mol->push_atoms (
+    map{ HackaMol::Atom->new(Z => 8, coords => [$_]) } ($o1,$o2)
+);
+$mol->print_xyz;
+
+my @atoms = map{$_->xyz} $mol->all_atoms;
+my $nerf = HackaMol::X::NERF->new;
+
+my $h1 = $nerf->extend_abc( $atoms[2], $atoms[1], $atoms[0], 1.0, 120, 1 );
+my $h2 = $nerf->extend_abc( $atoms[2], $atoms[1], $atoms[0], 1.0, 120, 180 );
+my $h3 = $nerf->extend_abc( $atoms[7], $atoms[5], $atoms[6], 1.0, 120, 1 );
+my $h4 = $nerf->extend_abc( $atoms[7], $atoms[5], $atoms[6], 1.0, 120, 180 );
+my $h5 = $nerf->extend_abc( $atoms[2], $atoms[0], $atoms[1], 1.47, 109, 120);
+my $h6 = $nerf->extend_abc( $atoms[8], $atoms[6], $atoms[7], 1.47, 109, 90);
+my $h7 = $nerf->extend_abc( $atoms[5], $atoms[3], $atoms[4], 1.47, 109, -90);
+my $h8 = $nerf->extend_abc( $atoms[5], $atoms[3], $atoms[4], 1.47, 109, 90);
+my $h9 = $nerf->extend_abc( $atoms[11], $atoms[9], $atoms[10], 1.47, 109, 270);
+my $h10 = $nerf->extend_abc( $atoms[11], $atoms[9], $atoms[10], 1.47, 109, 90);
+my $h11 = $nerf->extend_abc( $atoms[3], $atoms[2], $atoms[12], 0.96, 180, 180);
+my $h12 = $nerf->extend_abc( $atoms[9], $atoms[8], $atoms[13], 0.96, 180, 90);
+
+$mol->push_atoms (
     map{ HackaMol::Atom->new(Z => 1, coords => [$_]) } ($h1,$h2,$h3,$h4,$h5,$h6,$h7,$h8,$h9,$h10,$h11,$h12)
-  );
-#  my $hmol = HackaMol::Molecule->new(atoms=>[$mol->all_atoms,
-#      map{ HackaMol::Atom->new(Z => 8, coords => [$_]) } ($o1,$o2),
-#      map{ HackaMol::Atom->new(Z => 1, coords => [$_]) } ($h1,$h2,$h3,$h4,$h5,$h6,$h7,$h8,$h9,$h10,$h11,$h12)
-#      ]
-#  ); 
- 
-  $hmol->print_xyz;
-  exit;
+);
 
-  return ($hmol);
-  
+#$mol->print_xyz;
+
+#$mol->print_xyz('cys_oo.xyz');1
+
+return ($mol);
+
 }
+
+
+
+=cut;
+
+  $fresults{$nnlength}{$chi3}++;
+
+
+  # sets variables to the appropriate angle rounded up and in partitions set above
+
+#  unless( exists( $results{$chi1}{$chi2}{$chi3}{$chi1p}{$chi2p} ) ) {
+  unless( exists( $results{$chi3}{$nnlength} ) ) {
+    $results{$chi1}{$chi2}++;
+    $results{$chi1}{$chi2p}++;
+    $results{$chi1p}{$chi2}++;
+    $results{$chi1p}{$chi2p}++;
+
+
+
+#    $results{$chi3}{$nnlength}++;
   
+#  my @energies = $orca2->opt;
+#  printf ("%10.3f %10.3f %10.3f %10.3f %10.3f %14.6f\n",$dihe1->dihe_deg, $dihe1p->dihe_deg, $dihe2->dihe_deg, $dihe2p->dihe_deg, $dihe3->dihe_deg, $energies[-1]*627.51);
+#  printf $in ("%10.3f %10.3f %10.3f %10.3f %10.3f %14.6f\n",$dihe1->dihe_deg, $dihe1p->dihe_deg, $dihe2->dihe_deg, $dihe2p->dihe_deg, $dihe3->dihe_deg, $energies[-1]*627.51);  
+#    printf $in ("%10.3f %10.3f %10.3f\n",$dihe1->dihe_deg, $dihe2->dihe_deg, $nnlength*$partit2); 
+#    printf $in ("%10.3f %10.3f %10.3f\n",$dihe1p->dihe_deg, $dihe2p->dihe_deg, $nnlength*$partit2);
+  #my $mol2 = HackaMol->new->read_file_mol("tmp/mol.xyz");
+  #$mol2->print_xyz($fh);
   
+#  else
+#  );
+#  }
+}
+#};
+
+my $root = $file;
+$root =~ s/\.xyz//;
+
+open(my $fchi3, ">", "$root\_dist_chi3.txt") or die "couldn't open";
+open(my $fchi12, ">", "$root\_chi1_chi2.txt") or die "couldn't open";
+
+
+my $tot= 0;
+foreach my $dist (sort { $a <=> $b } keys %fresults){
+  foreach my $chi3 (sort{ $a <=> $b } keys %{$fresults{$dist}}){
+    $tot++;
+    say "total configs: $tot ", "number of configs for $dist $chi3:", $fresults{$dist}{$chi3}; 
+  }
+}
+
+say "total number of configs ", $tot;
+
+#use Data::Dumper;
+
+#print Dumper \%results;
 
